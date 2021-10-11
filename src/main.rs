@@ -1,13 +1,14 @@
-use egg_mode::error::Result;
-use gptj;
 use std::env;
-use std::{thread, time};
-
 use std::{
     fs::File,
     io::{prelude::*, BufReader},
     path::Path,
 };
+use std::{thread, time};
+
+use egg_mode::error::Result;
+use egg_mode::tweet::DraftTweet;
+use gptj;
 
 fn read_db(filename: impl AsRef<Path>) -> Vec<u64> {
     match File::open(filename) {
@@ -47,33 +48,57 @@ async fn main() -> Result<()> {
     let mut tweets: Vec<u64> = read_db("tweets.db");
 
     loop {
-        match read_feed(&mut tweets, &token).await {
-            Ok(()) => {},
-            Err(err) => println!("{:?}", err)
+        match read_feed_and_tweet(&mut tweets, &token).await {
+            Ok(()) => {}
+            Err(err) => println!("{:?}", err),
         }
         thread::sleep(time::Duration::from_secs(60));
     }
 }
 
-async fn read_feed(tweets: &mut Vec<u64>, token: &egg_mode::Token) -> Result<()> {
+async fn read_feed_and_tweet(tweets: &mut Vec<u64>, token: &egg_mode::Token) -> Result<()> {
     let timeline = egg_mode::tweet::home_timeline(&token).with_page_size(10);
 
     let (_timeline, feed) = timeline.start().await?;
     for tweet in feed.response {
         if !tweets.contains(&tweet.id) {
             println!("");
-            println!("{}: {}", &tweet.user.unwrap().screen_name, &tweet.text);
-            println!("ai: {}", ai_tweet(tweet.text.to_string()).await);
+            let tweet_user = &tweet.user.unwrap();
+            println!("{}: {}", tweet_user.screen_name, &tweet.text);
+
+            if tweet_user.name != env::var("USER").unwrap() {
+                let text: String = ai_response(tweet.text)
+                    .await
+                    .chars()
+                    .into_iter()
+                    .take(270)
+                    .collect();
+                match text.len() > 0 {
+                    true => {
+                        tweets.push(tweet.id);
+                        let tweet = DraftTweet::new(text.to_string());
+                        tweet.send(token).await?;
+
+                        println!("ai: {}", text);
+                    }
+                    false => {}
+                };
+            }
+
             println!("---");
-            tweets.push(tweet.id);
         }
     }
     write_db(tweets, "tweets.db");
     Ok(())
 }
 
-async fn ai_tweet(context: String) -> String {
+async fn ai_response(context: String) -> String {
     let gpt = gptj::GPT::default();
-    let response = gpt.generate(context, 42, 0.9, 0.9, None).await.unwrap();
-    response.text
+    match gpt.generate(context, 42, 0.9, 0.9, None).await {
+        Ok(response) => response.text,
+        Err(err) => {
+            println!("{}", err);
+            "".to_string()
+        }
+    }
 }
