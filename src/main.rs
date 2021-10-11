@@ -1,6 +1,7 @@
 use egg_mode::error::Result;
 use gptj;
 use std::env;
+use std::{thread, time};
 
 use std::{
     fs::File,
@@ -20,9 +21,9 @@ fn read_db(filename: impl AsRef<Path>) -> Vec<u64> {
     }
 }
 
-fn write_db(tweets: Vec<u64>, filename: impl AsRef<Path>) {
+fn write_db(tweets: &Vec<u64>, filename: impl AsRef<Path>) {
     let mut f = File::create(filename).expect("Unable to create file");
-    for i in &tweets {
+    for i in tweets {
         let id = format!("{}\n", i.to_string());
         f.write_all(id.as_bytes()).expect("Unable to write data");
     }
@@ -45,6 +46,16 @@ async fn main() -> Result<()> {
 
     let mut tweets: Vec<u64> = read_db("tweets.db");
 
+    loop {
+        match read_feed(&mut tweets, &token).await {
+            Ok(()) => {},
+            Err(err) => println!("{:?}", err)
+        }
+        thread::sleep(time::Duration::from_secs(60));
+    }
+}
+
+async fn read_feed(tweets: &mut Vec<u64>, token: &egg_mode::Token) -> Result<()> {
     let timeline = egg_mode::tweet::home_timeline(&token).with_page_size(10);
 
     let (_timeline, feed) = timeline.start().await?;
