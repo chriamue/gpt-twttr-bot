@@ -32,12 +32,12 @@ fn write_db(tweets: &Vec<u64>, filename: impl AsRef<Path>) {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let con_key = env::var("KEY").unwrap();
-    let con_secret = env::var("SECRET").unwrap();
+    let api_key = env::var("API_KEY").unwrap();
+    let api_secret = env::var("API_KEY_SECRET").unwrap();
     let access_token = env::var("ACCESS_TOKEN").unwrap_or_default();
-    let access_token_secret = env::var("ACCESS_SECRET").unwrap_or_default();
+    let access_token_secret = env::var("ACCESS_TOKEN_SECRET").unwrap_or_default();
 
-    let con_token = egg_mode::KeyPair::new(con_key, con_secret);
+    let con_token = egg_mode::KeyPair::new(api_key, api_secret);
 
     let access_token = egg_mode::KeyPair::new(access_token, access_token_secret);
     let token = egg_mode::Token::Access {
@@ -66,13 +66,17 @@ async fn read_feed_and_tweet(tweets: &mut Vec<u64>, token: &egg_mode::Token) -> 
             let tweet_user = &tweet.user.unwrap();
             println!("{}: {}", tweet_user.screen_name, &tweet.text);
 
-            if tweet_user.name != env::var("USER").unwrap() {
-                let text: String = ai_response(tweet.text)
-                    .await
-                    .chars()
-                    .into_iter()
-                    .take(270)
-                    .collect();
+            if tweet_user.screen_name != env::var("USER").unwrap() {
+                let text: String = format!(
+                    "https://twitter.com/{}/status/{} {}",
+                    tweet_user.screen_name,
+                    tweet.id,
+                    ai_response(tweet.text).await
+                )
+                .chars()
+                .into_iter()
+                .take(240)
+                .collect();
                 match text.len() > 0 {
                     true => {
                         tweets.push(tweet.id);

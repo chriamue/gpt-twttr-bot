@@ -5,7 +5,10 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      - KEY=""
-      - SECRET=""
-      - ACCESS_TOKEN=""
-      - ACCESS_SECRET=""
+      - USER=$USER
+      - ACCESS_TOKEN=$ACCESS_TOKEN
+      - ACCESS_TOKEN_SECRET=$ACCESS_TOKEN_SECRET
+      - API_KEY=$API_KEY
+      - API_KEY_SECRET=$API_KEY_SECRET
+    volumes:
+      tweets.db:/
