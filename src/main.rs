@@ -6,7 +6,6 @@ use std::{
 };
 use std::{thread, time};
 
-use egg_mode::error::Result;
 use egg_mode::tweet::DraftTweet;
 use gptj;
 
@@ -31,7 +30,7 @@ fn write_db(tweets: &Vec<u64>, filename: impl AsRef<Path>) {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> egg_mode::error::Result<()> {
     let api_key = env::var("API_KEY").unwrap();
     let api_secret = env::var("API_KEY_SECRET").unwrap();
     let access_token = env::var("ACCESS_TOKEN").unwrap_or_default();
@@ -56,7 +55,10 @@ async fn main() -> Result<()> {
     }
 }
 
-async fn read_feed_and_tweet(tweets: &mut Vec<u64>, token: &egg_mode::Token) -> Result<()> {
+async fn read_feed_and_tweet(
+    tweets: &mut Vec<u64>,
+    token: &egg_mode::Token,
+) -> egg_mode::error::Result<()> {
     let timeline = egg_mode::tweet::home_timeline(&token).with_page_size(10);
 
     let (_timeline, feed) = timeline.start().await?;
@@ -67,26 +69,30 @@ async fn read_feed_and_tweet(tweets: &mut Vec<u64>, token: &egg_mode::Token) -> 
             println!("{}: {}", tweet_user.screen_name, &tweet.text);
 
             if tweet_user.screen_name != env::var("USER_NAME").unwrap() {
-                let text: String = format!(
-                    "https://twitter.com/{}/status/{} {}",
-                    tweet_user.screen_name,
-                    tweet.id,
-                    ai_response(tweet.text).await
-                )
-                .chars()
-                .into_iter()
-                .take(240)
-                .collect();
-                match text.len() > 0 {
-                    true => {
-                        tweets.push(tweet.id);
-                        let tweet = DraftTweet::new(text.to_string());
-                        tweet.send(token).await?;
-
-                        println!("ai: {}", text);
+                match ai_response(tweet.text).await {
+                    Ok(response) => {
+                        let text: String = format!(
+                            "https://twitter.com/{}/status/{} {}",
+                            tweet_user.screen_name, tweet.id, response
+                        )
+                        .chars()
+                        .into_iter()
+                        .take(240)
+                        .collect();
+                        match text.len() > 0 {
+                            true => {
+                                let my_tweet = DraftTweet::new(text.to_string());
+                                my_tweet.send(token).await?;
+                                tweets.push(tweet.id);
+                                println!("ai: {}", text);
+                            }
+                            false => {}
+                        };
                     }
-                    false => {}
-                };
+                    Err(err) => {
+                        println!("error: {}", err);
+                    }
+                }
             }
 
             println!("---");
@@ -96,13 +102,7 @@ async fn read_feed_and_tweet(tweets: &mut Vec<u64>, token: &egg_mode::Token) -> 
     Ok(())
 }
 
-async fn ai_response(context: String) -> String {
+async fn ai_response(context: String) -> Result<String, reqwest::Error> {
     let gpt = gptj::GPT::default();
-    match gpt.generate(context, 42, 0.9, 0.9, None).await {
-        Ok(response) => response.text,
-        Err(err) => {
-            println!("{}", err);
-            "".to_string()
-        }
-    }
+    Ok(gpt.generate(context, 42, 0.9, 0.9, None).await?.text)
 }
