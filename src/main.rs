@@ -66,7 +66,7 @@ async fn read_feed_and_tweet(tweets: &mut Vec<u64>, token: &egg_mode::Token) -> 
             let tweet_user = &tweet.user.unwrap();
             println!("{}: {}", tweet_user.screen_name, &tweet.text);
 
-            if tweet_user.screen_name != env::var("USER").unwrap() {
+            if tweet_user.screen_name != env::var("USER_NAME").unwrap() {
                 let text: String = format!(
                     "https://twitter.com/{}/status/{} {}",
                     tweet_user.screen_name,
