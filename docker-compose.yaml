@@ -11,4 +11,4 @@ services:
       - API_KEY=$API_KEY
       - API_KEY_SECRET=$API_KEY_SECRET
     volumes:
-      tweets.db:/
+      - ./tweets.db:/tweets.db

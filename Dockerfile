@@ -10,7 +10,7 @@ RUN cargo install --path .
 
 FROM rustlang/rust:nightly
 
-COPY --from=builder /usr/src/gpt-twttr-bot/target/release/gpt-twttr-bot .
+COPY --from=builder /usr/src/gpt-twttr-bot/target/release/gpt-twttr-bot /bin
 RUN touch tweets.db
 USER 1000
-CMD [ "./gpt-twttr-bot" ]
+CMD [ "gpt-twttr-bot" ]
