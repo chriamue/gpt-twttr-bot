@@ -1,33 +1,11 @@
 use std::env;
-use std::{
-    fs::File,
-    io::{prelude::*, BufReader},
-    path::Path,
-};
 use std::{thread, time};
 
 use egg_mode::tweet::DraftTweet;
 use gptj;
 
-fn read_db(filename: impl AsRef<Path>) -> Vec<u64> {
-    match File::open(filename) {
-        Ok(file) => {
-            let buf = BufReader::new(file);
-            buf.lines()
-                .map(|l| l.expect("Could not parse line").parse::<u64>().unwrap())
-                .collect()
-        }
-        Err(_) => vec![],
-    }
-}
-
-fn write_db(tweets: &Vec<u64>, filename: impl AsRef<Path>) {
-    let mut f = File::create(filename).expect("Unable to create file");
-    for i in tweets {
-        let id = format!("{}\n", i.to_string());
-        f.write_all(id.as_bytes()).expect("Unable to write data");
-    }
-}
+mod db;
+use db::{read_db, write_db};
 
 #[tokio::main]
 async fn main() -> egg_mode::error::Result<()> {
