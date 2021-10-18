@@ -2,10 +2,12 @@ use std::env;
 use std::{thread, time};
 
 use egg_mode::tweet::DraftTweet;
-use gptj;
 
 mod db;
 use db::{read_db, write_db};
+
+mod ai;
+use ai::response;
 
 #[tokio::main]
 async fn main() -> egg_mode::error::Result<()> {
@@ -47,30 +49,20 @@ async fn read_feed_and_tweet(
             println!("{}: {}", tweet_user.screen_name, &tweet.text);
 
             if tweet_user.screen_name != env::var("USER_NAME").unwrap() {
-                match ai_response(tweet.text).await {
-                    Ok(response) => {
-                        let text: String = format!(
-                            "https://twitter.com/{}/status/{} {}",
-                            tweet_user.screen_name, tweet.id, response
-                        )
-                        .chars()
-                        .into_iter()
-                        .take(240)
-                        .collect();
-                        match text.len() > 0 {
-                            true => {
-                                let my_tweet = DraftTweet::new(text.to_string());
-                                my_tweet.send(token).await?;
-                                tweets.push(tweet.id);
-                                println!("ai: {}", text);
-                            }
-                            false => {}
-                        };
+                let url = format!(
+                    "https://twitter.com/{}/status/{}",
+                    tweet_user.screen_name, tweet.id
+                );
+                let response = response(tweet.text, url, 240).await;
+                match response.len() > 0 {
+                    true => {
+                        let my_tweet = DraftTweet::new(response.to_string());
+                        my_tweet.send(token).await?;
+                        tweets.push(tweet.id);
+                        println!("ai: {}", response);
                     }
-                    Err(err) => {
-                        println!("error: {}", err);
-                    }
-                }
+                    false => {}
+                };
             }
 
             println!("---");
@@ -78,9 +70,4 @@ async fn read_feed_and_tweet(
     }
     write_db(tweets, "tweets.db");
     Ok(())
-}
-
-async fn ai_response(context: String) -> Result<String, reqwest::Error> {
-    let gpt = gptj::GPT::default();
-    Ok(gpt.generate(context, 42, 0.9, 0.9, None).await?.text)
 }
