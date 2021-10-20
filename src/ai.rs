@@ -15,7 +15,7 @@ async fn get_n_responses(context: String, url: String, max_len: usize, n: usize)
     for _ in 1..n {
         let response = gpt_response(context.clone(), tokens.try_into().unwrap()).await;
         let full_response = match response {
-            Ok(response) => format!("{}{}", url, response),
+            Ok(response) => format!("{}\n{}", url, response),
             Err(err) => {
                 println!("{:?}", err);
                 "".to_string()
