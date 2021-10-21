@@ -4,9 +4,11 @@ WORKDIR /usr/src/
 RUN USER=root cargo new gpt-twttr-bot
 WORKDIR /usr/src/gpt-twttr-bot
 COPY Cargo.toml Cargo.lock ./
-COPY src ./src
 RUN cargo build --release
-RUN cargo install --path .
+RUN rm src/*.rs
+COPY src ./src
+RUN touch src/main.rs
+RUN cargo build --release
 
 FROM rustlang/rust:nightly
 
