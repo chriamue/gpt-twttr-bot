@@ -21,11 +21,10 @@ async fn get_n_responses(context: String, url: String, max_len: usize, n: usize)
                 "".to_string()
             }
         };
-        match full_response.len() {
-            d if d < max_len => tokens += 2,
-            d if d > max_len => tokens -= 2,
-            _ => {}
-        }
+        tokens = recalc_tokens(tokens, full_response.len(), max_len);
+        let diff = full_response.len() as i32 - max_len as i32;
+        let new_tokens = (tokens as i32) + (diff/5);
+        tokens = new_tokens as usize;
         responses.push(full_response);
     }
     responses
@@ -51,6 +50,12 @@ fn best(responses: Vec<String>, max_len: i16) -> String {
     responses[0].to_string()
 }
 
+fn recalc_tokens(tokens: usize, current_len: usize, max_len: usize) -> usize {
+    let diff = max_len as i16 - current_len as i16;
+    let new_tokens = (tokens as i16) + (diff/5);
+    new_tokens as usize
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -71,5 +76,15 @@ mod tests {
     fn test_best() {
         let best = best(vec!["1".to_string(), "123456789".to_string()], 8);
         assert_eq!(best, "123456789".to_string());
+    }
+
+    #[test]
+    fn test_recalc_tokens() {
+        let tokens = 5;
+        let max_len = 20;
+        assert_eq!(4, recalc_tokens(tokens, 25, max_len));
+        assert_eq!(6, recalc_tokens(tokens, 15, max_len));
+        assert_eq!(5, recalc_tokens(tokens, 19, max_len));
+        assert_eq!(5, recalc_tokens(tokens, 21, max_len));
     }
 }
