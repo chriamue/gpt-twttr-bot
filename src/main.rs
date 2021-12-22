@@ -27,7 +27,7 @@ async fn main() -> egg_mode::error::Result<()> {
     };
 
     let mut tweets: Vec<u64> = read_db("tweets.db");
-    let ai = ai::create_ai(env::var("AI").unwrap_or_default());
+    let ai = ai::create_ai(env::var("AI").unwrap_or_default()).await;
     println!("Using ai: {}", ai.name());
     loop {
         match read_feed_and_tweet(&ai, &mut tweets, &token).await {

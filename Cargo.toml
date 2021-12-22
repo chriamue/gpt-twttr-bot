@@ -3,6 +3,10 @@ name = "gpt-twttr-bot"
 version = "0.2.0"
 edition = "2021"
 
+[features]
+default = ["bert"]
+bert = ["rust-bert", "tch"]
+
 [dependencies]
 async-trait = "0.1.52"
 dotenv = "0.15.0"
@@ -10,3 +14,6 @@ egg-mode = "0.16"
 gptj = { git="https://github.com/chriamue/gpt-j-ru.git" }
 reqwest = "0.11"
 tokio = { version = "1", features = ["full"] }
+serde = "1.0.132"
+rust-bert = { version = "0.17", optional = true }
+tch = { version = "~0.6.1", optional = true }

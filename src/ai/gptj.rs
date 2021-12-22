@@ -1,7 +1,6 @@
 use super::ai::AI;
 use async_trait::async_trait;
 
-
 #[derive(Default)]
 pub struct GPTJ {}
 
