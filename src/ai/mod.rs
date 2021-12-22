@@ -2,6 +2,8 @@ mod ai;
 #[cfg(feature = "bert")]
 mod gpt2;
 mod gptj;
+#[cfg(feature = "bert")]
+mod gptneo;
 
 pub use ai::response;
 pub use ai::AI;
@@ -11,6 +13,8 @@ pub async fn create_ai(ai: String) -> Box<dyn ai::AI> {
         "gptj" => Box::new(gptj::GPTJ::default()),
         #[cfg(feature = "bert")]
         "gpt2" => Box::new(gpt2::GPT2::new()),
+        #[cfg(feature = "bert")]
+        "gptneo" => Box::new(gptneo::GPTNeo::new()),
         _ => Box::new(gptj::GPTJ::default()),
     }
 }

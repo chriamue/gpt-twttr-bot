@@ -33,21 +33,24 @@ impl AI for GPT2 {
     ) -> Result<String, reqwest::Error> {
         let generate_options = GenerateOptions {
             max_length: Some(token_max_length.into()),
-            max_new_tokens: Some(token_max_length.into()),
-            temperature: Some(1.1),
-            top_p: Some(1.1),
+            do_sample: Some(true),
+            early_stopping: Some(true),
+            repetition_penalty: Some(1.2),
+            temperature: Some(1.4),
+            top_p: Some(0.9),
             top_k: Some(40),
             ..Default::default()
         };
 
         let output = self
             .model
-            .generate(Some(&[context]), Some(generate_options));
+            .generate(Some(&[context.to_string()]), Some(generate_options));
         let response = output[0].text.to_string();
+        let response = response.replace(context.as_str(), "");
         Ok(response)
     }
 
     fn name(&self) -> String {
-        "gptj".to_string()
+        "gpt2".to_string()
     }
 }

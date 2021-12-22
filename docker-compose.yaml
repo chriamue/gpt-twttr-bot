@@ -10,5 +10,6 @@ services:
       - ACCESS_TOKEN_SECRET=$ACCESS_TOKEN_SECRET
       - API_KEY=$API_KEY
       - API_KEY_SECRET=$API_KEY_SECRET
+      - AI=$AI
     volumes:
       - ./tweets.db:/tweets.db
