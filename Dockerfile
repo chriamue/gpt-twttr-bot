@@ -1,4 +1,4 @@
-FROM rustlang/rust:nightly AS builder
+FROM rust:slim-bullseye AS builder
 WORKDIR /usr/src/
 
 RUN USER=root cargo new gpt-twttr-bot
@@ -10,7 +10,7 @@ COPY src ./src
 RUN touch src/main.rs
 RUN cargo build --release
 
-FROM rustlang/rust:nightly
+FROM rust:slim-bullseye
 
 COPY --from=builder /usr/src/gpt-twttr-bot/target/release/gpt-twttr-bot /bin
 RUN touch tweets.db
