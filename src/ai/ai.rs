@@ -1,19 +1,37 @@
-use gptj;
+use async_trait::async_trait;
 use std::{cmp::Ordering, convert::TryInto};
 
-pub async fn response(context: String, url: String, max_len: u16) -> String {
-    let responses = get_n_responses(context, url, max_len.into(), 3).await;
+#[async_trait]
+pub trait AI {
+    async fn response(
+        &self,
+        context: String,
+        token_max_length: u16,
+    ) -> Result<String, reqwest::Error>;
+    fn name(&self) -> String;
+}
+
+pub async fn response(ai: &Box<dyn AI>, context: String, url: String, max_len: u16) -> String {
+    let responses = get_n_responses(ai, context, url, max_len.into(), 3).await;
     let best = best(responses, max_len as i16);
     best.chars().into_iter().take(max_len.into()).collect()
 }
 
-async fn get_n_responses(context: String, url: String, max_len: usize, n: usize) -> Vec<String> {
+async fn get_n_responses(
+    ai: &Box<dyn AI>,
+    context: String,
+    url: String,
+    max_len: usize,
+    n: usize,
+) -> Vec<String> {
     let mut responses: Vec<String> = Vec::new();
 
     let mut tokens = max_len / 5;
 
     for _ in 1..n {
-        let response = gpt_response(context.clone(), tokens.try_into().unwrap()).await;
+        let response = ai
+            .response(context.clone(), tokens.try_into().unwrap())
+            .await;
         let full_response = match response {
             Ok(response) => format!("{}\n{}", url, response),
             Err(err) => {
@@ -23,19 +41,11 @@ async fn get_n_responses(context: String, url: String, max_len: usize, n: usize)
         };
         tokens = recalc_tokens(tokens, full_response.len(), max_len);
         let diff = full_response.len() as i32 - max_len as i32;
-        let new_tokens = (tokens as i32) + (diff/5);
+        let new_tokens = (tokens as i32) + (diff / 5);
         tokens = new_tokens as usize;
         responses.push(full_response);
     }
     responses
-}
-
-async fn gpt_response(context: String, token_max_length: u16) -> Result<String, reqwest::Error> {
-    let gpt = gptj::GPT::default();
-    Ok(gpt
-        .generate(context, token_max_length, 0.9, 0.9, None)
-        .await?
-        .text)
 }
 
 fn sort_by_dist_to_max_len(a: &String, b: &String, max_len: i16) -> Ordering {
@@ -52,7 +62,7 @@ fn best(responses: Vec<String>, max_len: i16) -> String {
 
 fn recalc_tokens(tokens: usize, current_len: usize, max_len: usize) -> usize {
     let diff = max_len as i16 - current_len as i16;
-    let new_tokens = (tokens as i16) + (diff/5);
+    let new_tokens = (tokens as i16) + (diff / 5);
     new_tokens as usize
 }
 

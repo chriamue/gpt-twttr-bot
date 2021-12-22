@@ -1,3 +1,4 @@
+use dotenv::dotenv;
 use std::env;
 use std::{thread, time};
 
@@ -11,6 +12,7 @@ use ai::response;
 
 #[tokio::main]
 async fn main() -> egg_mode::error::Result<()> {
+    dotenv().ok();
     let api_key = env::var("API_KEY").unwrap();
     let api_secret = env::var("API_KEY_SECRET").unwrap();
     let access_token = env::var("ACCESS_TOKEN").unwrap_or_default();
@@ -25,9 +27,10 @@ async fn main() -> egg_mode::error::Result<()> {
     };
 
     let mut tweets: Vec<u64> = read_db("tweets.db");
-
+    let ai = ai::create_ai(env::var("AI").unwrap_or_default());
+    println!("Using ai: {}", ai.name());
     loop {
-        match read_feed_and_tweet(&mut tweets, &token).await {
+        match read_feed_and_tweet(&ai, &mut tweets, &token).await {
             Ok(()) => {}
             Err(err) => println!("{:?}", err),
         }
@@ -36,15 +39,16 @@ async fn main() -> egg_mode::error::Result<()> {
 }
 
 async fn read_feed_and_tweet(
+    ai: &Box<dyn ai::AI>,
     tweets: &mut Vec<u64>,
     token: &egg_mode::Token,
 ) -> egg_mode::error::Result<()> {
-    let timeline = egg_mode::tweet::home_timeline(&token).with_page_size(10);
+    let timeline = egg_mode::tweet::home_timeline(token).with_page_size(10);
 
     let (_timeline, feed) = timeline.start().await?;
     for tweet in feed.response {
         if !tweets.contains(&tweet.id) {
-            println!("");
+            println!();
             let tweet_user = &tweet.user.unwrap();
             println!("{}: {}", tweet_user.screen_name, &tweet.text);
 
@@ -53,8 +57,8 @@ async fn read_feed_and_tweet(
                     "https://twitter.com/{}/status/{}",
                     tweet_user.screen_name, tweet.id
                 );
-                let response = response(tweet.text, url, 240).await;
-                match response.len() > 0 {
+                let response = response(ai, tweet.text, url, 240).await;
+                match !response.is_empty() {
                     true => {
                         let my_tweet = DraftTweet::new(response.to_string());
                         my_tweet.send(token).await?;
