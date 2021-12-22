@@ -1,4 +1,4 @@
-FROM rust:slim-bullseye AS builder
+FROM rust:bullseye AS builder
 WORKDIR /usr/src/
 
 RUN USER=root cargo new gpt-twttr-bot
@@ -9,10 +9,4 @@ RUN rm src/*.rs
 COPY src ./src
 RUN touch src/main.rs
 RUN cargo build --release
-
-FROM rust:slim-bullseye
-
-COPY --from=builder /usr/src/gpt-twttr-bot/target/release/gpt-twttr-bot /bin
-RUN touch tweets.db
-USER 1000
-CMD [ "gpt-twttr-bot" ]
+ENTRYPOINT [ "cargo", "run", "--release" ]
