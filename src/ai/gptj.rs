@@ -22,3 +22,19 @@ impl AI for GPTJ {
         "gptj".to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_response() {
+        let ai = GPTJ {};
+        let context = "Lots of Tesla cars to deliver before year end! Your support in taking delivery is much appreciated.".to_string();
+        let output = ai.response(context.to_string(), 42).await.unwrap();
+        println!("{}", output);
+        assert_ne!(output, context);
+        assert_ne!(output.len(), 0);
+        assert!(output.len() > 10);
+    }
+}

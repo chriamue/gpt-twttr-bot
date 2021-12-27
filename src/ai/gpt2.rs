@@ -34,11 +34,11 @@ impl AI for GPT2 {
         let generate_options = GenerateOptions {
             max_length: Some(token_max_length.into()),
             do_sample: Some(true),
-            early_stopping: Some(true),
-            repetition_penalty: Some(1.2),
-            temperature: Some(1.4),
-            top_p: Some(0.9),
-            top_k: Some(40),
+            early_stopping: Some(false),
+            repetition_penalty: Some(1.1),
+            temperature: Some(2.4),
+            top_p: Some(0.95),
+            top_k: Some(60),
             ..Default::default()
         };
 
@@ -52,5 +52,21 @@ impl AI for GPT2 {
 
     fn name(&self) -> String {
         "gpt2".to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_response() {
+        let ai = GPT2::new();
+        let context = "Lots of Tesla cars to deliver before year end! Your support in taking delivery is much appreciated.".to_string();
+        let output = ai.response(context.to_string(), 42).await.unwrap();
+        println!("{}", output);
+        assert_ne!(output, context);
+        assert_ne!(output.len(), 0);
+        assert!(output.len() > 10);
     }
 }

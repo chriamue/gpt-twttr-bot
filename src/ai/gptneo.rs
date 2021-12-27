@@ -35,11 +35,11 @@ impl GPTNeo {
             min_length: 10,
             max_length: 96,
             do_sample: true,
-            early_stopping: true,
-            repetition_penalty: 1.2,
-            temperature: 1.4,
+            early_stopping: false,
+            repetition_penalty: 1.0,
+            temperature: 3.5,
             top_p: 0.9,
-            top_k: 40,
+            top_k: 55,
             device: Device::Cpu,
             ..Default::default()
         };
@@ -74,5 +74,21 @@ impl AI for GPTNeo {
 
     fn name(&self) -> String {
         "gptneo".to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_response() {
+        let ai = GPTNeo::new();
+        let context = "Lots of Tesla cars to deliver before year end! Your support in taking delivery is much appreciated.".to_string();
+        let output = ai.response(context.to_string(), 42).await.unwrap();
+        println!("{}", output);
+        assert_ne!(output, context);
+        assert_ne!(output.len(), 0);
+        assert!(output.len() > 10);
     }
 }
